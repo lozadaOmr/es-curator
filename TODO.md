@@ -7,8 +7,9 @@
 ## List of OPTIONS:
 
 - [ ] config PATH
-- [ ] dry-run
+
+~- [ ] dry-run~
 
 ## ACTION_FILE
-
+- [x] ACTION_FILE PATH
 
