@@ -50,10 +50,31 @@ EXAMPLES = '''
 '''
 
 import os
-import traceback
+import subprocess
 
 from ansible.module_utils.basic import AnsibleModule
 from ansible.module_utils.pycompat24 import get_exception
+
+
+def valid_path(data):
+
+    if not os.path.isdir(data):
+        return False
+    return True
+
+
+def file_exist(data):
+
+    if not os.path.exists(data):
+        return False
+    return True
+
+
+def check_yaml_file(data):
+
+    if not data.endswith('.yml'):
+        return False
+    return True
 
 
 def main():
@@ -61,20 +82,59 @@ def main():
     module = AnsibleModule(
         argument_spec = dict(
             path   = dict(required=True, type='path'),
-            config = dict(required=False, type='path')
-        )
+            config = dict(required=False, type='path'),
+        ),
     )
 
     path = module.params['path']
     config = module.params['config']
 
-     if not os.path.exists(path):
-         module.fail_json(msg="Path %s not found" % (src))
-     # if source is not yml file
-     # module.fail_json(msg="Source %s not YAML" % (src))
 
-    # use python to run "curator"
-    # given src
+    if not path:
+        module.fail_json(msg="Path is required")
+
+    # TODO: Move block to a function
+    file_dir = os.path.dirname(path)
+
+    if not valid_path(file_dir):
+        module.fail_json(msg="Path does not exist")
+
+    if not file_exist(path):
+        module.fail_json(msg="File does not exist")
+
+    file_name = os.path.basename(path)
+
+    if not check_yaml_file(file_name):
+        module.fail_json(msg="File is not YAML")
+
+    if config:
+
+        # TODO: Move block to a function
+        config_dir = os.path.dirname(path)
+
+        if not valid_path(config_dir):
+            module.fail_json(msg="Config does not exist")
+
+        if not file_exist(path):
+            module.fail_json(msg="File does not exist")
+
+        config_name = os.path.basename(path)
+
+        if not check_yaml_file(config_name):
+            modue.fail_json(msg="File is not YAML")
+
+    # change current working directory
+    os.chdir(file_dir)
+
+    # simply use subprocess
+    cmd = "curator --dry-run {}".format(path
+
+    try:
+        subprocess.call(cmd)
+        module.exit_json(msg="Success")
+    except:
+        module.fail_json(msg="Something went wrong")
+
 
 if __name__ == '__main__':
     main()
