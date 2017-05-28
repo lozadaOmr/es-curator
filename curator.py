@@ -66,7 +66,7 @@ def main():
     )
 
     path = module.params['path']
-    config = module.parms['config']
+    config = module.params['config']
 
      if not os.path.exists(path):
          module.fail_json(msg="Path %s not found" % (src))
