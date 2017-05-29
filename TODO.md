@@ -6,7 +6,7 @@
 
 ## List of OPTIONS:
 
-- [ ] config PATH
+- [x] config PATH
 
 ~- [ ] dry-run~
 
