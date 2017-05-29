@@ -147,11 +147,12 @@ def main():
     cmd = generate_command(data)
 
     try:
-        p = Popen(cmd, shell=True, stdin=PIPE, stdout=PIPE, stderr=STDOUT, close_fds=True)
-        module.exit_json(msg="Success", result=p)
+        proc = Popen(cmd, shell=True, cwd=file_dir)
+        proc.wait()
+        module.exit_json(msg="Success", result=proc.returncode)
     except Exception:
         e = get_exception()
-        module.fail_json(msg='fail',x=e)
+        module.fail_json(msg=e)
 
 
 if __name__ == '__main__':
