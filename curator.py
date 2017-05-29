@@ -49,6 +49,19 @@ EXAMPLES = '''
     config: "/home/ubuntu/.curator/curator.yml"
 '''
 
+RETURN = '''
+result:
+    description: Return code curator call
+    returned: success
+    type: integer
+    sample: 2
+msg:
+    description:
+    returned: changed
+    type: string
+    sample: No such file or directory
+'''
+
 import os
 import subprocess
 
