@@ -52,15 +52,23 @@ EXAMPLES = '''
 import os
 import subprocess
 
+from subprocess import Popen, PIPE, STDOUT
 from ansible.module_utils.basic import AnsibleModule
 from ansible.module_utils.pycompat24 import get_exception
 
 
-def valid_path(data):
+def generate_command(data):
 
-    if not os.path.isdir(data):
-        return False
-    return True
+    cmd = []
+    cmd.append('curator')
+
+    if data.get('config', None):
+
+        cmd.append("--config")
+        cmd.append(data['config'])
+
+    cmd.append(data['path'])
+    return ' '.join(cmd)
 
 
 def file_exist(data):
@@ -89,6 +97,7 @@ def main():
     path = module.params['path']
     config = module.params['config']
 
+    data = {}
 
     if not path:
         module.fail_json(msg="Path is required")
@@ -96,8 +105,10 @@ def main():
     # TODO: Move block to a function
     file_dir = os.path.dirname(path)
 
-    if not valid_path(file_dir):
-        module.fail_json(msg="Path does not exist")
+    try:
+        os.chdir(file_dir)
+    except OSError as e:
+        module.fail_json(msg=e.strerror)
 
     if not file_exist(path):
         module.fail_json(msg="File does not exist")
@@ -107,33 +118,39 @@ def main():
     if not check_yaml_file(file_name):
         module.fail_json(msg="File is not YAML")
 
+    data['file_name'] = file_name
+    data['file_dir'] = file_dir
+    data['path'] = path
+
     if config:
 
         # TODO: Move block to a function
-        config_dir = os.path.dirname(path)
+        config_dir = os.path.dirname(config)
 
-        if not valid_path(config_dir):
-            module.fail_json(msg="Config does not exist")
+        try:
+            os.path.isdir(config_dir)
+        except OSError as e:
+            module.fail_json(msg=strerror)
 
-        if not file_exist(path):
+        if not file_exist(config):
             module.fail_json(msg="File does not exist")
 
-        config_name = os.path.basename(path)
+        config_name = os.path.basename(config)
 
         if not check_yaml_file(config_name):
-            modue.fail_json(msg="File is not YAML")
+            module.fail_json(msg="File is not YAML")
 
-    # change current working directory
-    os.chdir(file_dir)
+        data['config_name'] = config_name
+        data['config_dir'] = config_dir
+        data['config'] = config
 
-    # simply use subprocess
-    cmd = "curator --dry-run {}".format(path
+    cmd = generate_command(data)
 
     try:
-        subprocess.call(cmd)
-        module.exit_json(msg="Success")
-    except:
-        module.fail_json(msg="Something went wrong")
+        p = Popen(cmd, shell=True, stdin=PIPE, stdout=PIPE, stderr=STDOUT, close_fds=True)
+        module.exit_json(msg="Success", result=p)
+    except Exception as e:
+        module.fail_json(msg='fail',x=e)
 
 
 if __name__ == '__main__':
