@@ -149,7 +149,8 @@ def main():
     try:
         p = Popen(cmd, shell=True, stdin=PIPE, stdout=PIPE, stderr=STDOUT, close_fds=True)
         module.exit_json(msg="Success", result=p)
-    except Exception as e:
+    except Exception:
+        e = get_exception()
         module.fail_json(msg='fail',x=e)
 
 
