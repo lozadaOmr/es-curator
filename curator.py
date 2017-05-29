@@ -58,12 +58,13 @@ from ansible.module_utils.pycompat24 import get_exception
 
 
 def generate_command(data):
-
     cmd = []
     cmd.append('curator')
 
-    if data.get('config', None):
+    if data.get('dry-run',None):
+        cmd.append("--dry-run")
 
+    if data.get('config', None):
         cmd.append("--config")
         cmd.append(data['config'])
 
@@ -92,6 +93,7 @@ def main():
             path   = dict(required=True, type='path'),
             config = dict(required=False, type='path'),
         ),
+        supports_check_mode=True
     )
 
     path = module.params['path']
@@ -143,6 +145,9 @@ def main():
         data['config_name'] = config_name
         data['config_dir'] = config_dir
         data['config'] = config
+
+    if module.check_mode:
+        data['dry-run'] = True
 
     cmd = generate_command(data)
 
