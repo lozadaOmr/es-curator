@@ -86,6 +86,26 @@ def check_yaml_file(data):
     return True
 
 
+def validate(pwd, module):
+
+    pwd_path = os.path.dirname(pwd)
+
+    try:
+        os.chdir(pwd_path)
+    except OSError as e:
+        module.fail_json(msg=e.strerror)
+
+    if not file_exist(pwd):
+        module.fail_json(msg="File does not exist")
+
+    file_name = os.path.basename(pwd)
+
+    if not check_yaml_file(file_name):
+        module.fail_json(msg="File is not YAML")
+
+    return file_name, pwd_path, pwd
+
+
 def main():
 
     module = AnsibleModule(
@@ -104,47 +124,10 @@ def main():
     if not path:
         module.fail_json(msg="Path is required")
 
-    # TODO: Move block to a function
-    file_dir = os.path.dirname(path)
-
-    try:
-        os.chdir(file_dir)
-    except OSError as e:
-        module.fail_json(msg=e.strerror)
-
-    if not file_exist(path):
-        module.fail_json(msg="File does not exist")
-
-    file_name = os.path.basename(path)
-
-    if not check_yaml_file(file_name):
-        module.fail_json(msg="File is not YAML")
-
-    data['file_name'] = file_name
-    data['file_dir'] = file_dir
-    data['path'] = path
+    data['file_name'], data['file_dir'], data['path'] = validate(path, module)
 
     if config:
-
-        # TODO: Move block to a function
-        config_dir = os.path.dirname(config)
-
-        try:
-            os.path.isdir(config_dir)
-        except OSError as e:
-            module.fail_json(msg=strerror)
-
-        if not file_exist(config):
-            module.fail_json(msg="File does not exist")
-
-        config_name = os.path.basename(config)
-
-        if not check_yaml_file(config_name):
-            module.fail_json(msg="File is not YAML")
-
-        data['config_name'] = config_name
-        data['config_dir'] = config_dir
-        data['config'] = config
+        data['config_name'], data['config_dir'], data['config'] = validate(config, module)
 
     if module.check_mode:
         data['dry-run'] = True
@@ -152,7 +135,7 @@ def main():
     cmd = generate_command(data)
 
     try:
-        proc = Popen(cmd, shell=True, cwd=file_dir)
+        proc = Popen(cmd, shell=True, cwd=data['file_dir'])
         proc.wait()
         module.exit_json(msg="Success", result=proc.returncode)
     except Exception:
