@@ -65,7 +65,6 @@ msg:
 import os
 import getpass
 
-from subprocess import Popen
 from distutils import spawn
 from ansible.module_utils.basic import AnsibleModule
 from ansible.module_utils.pycompat24 import get_exception
