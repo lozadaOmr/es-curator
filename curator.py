@@ -66,6 +66,7 @@ import os
 import getpass
 
 from subprocess import Popen
+from distutils import spawn
 from ansible.module_utils.basic import AnsibleModule
 from ansible.module_utils.pycompat24 import get_exception
 
@@ -169,6 +170,11 @@ def main():
         data['dry-run'] = True
 
     cmd = generate_command(data)
+
+    curator_dir = spawn.find_executable("curator")
+
+    if not curator_dir:
+        module.fail_json(msg="curator: not found")
 
     try:
         proc = Popen(cmd, shell=True, cwd=data['file_dir'])
