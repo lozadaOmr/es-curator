@@ -63,9 +63,9 @@ msg:
 '''
 
 import os
-import subprocess
+import getpass
 
-from subprocess import Popen, PIPE, STDOUT
+from subprocess import Popen
 from ansible.module_utils.basic import AnsibleModule
 from ansible.module_utils.pycompat24 import get_exception
 
@@ -98,6 +98,25 @@ def check_yaml_file(data):
         return False
     return True
 
+
+def get_default_config(pwd, module):
+
+    pwd_path = os.path.dirname(pwd)
+
+    try:
+        os.chdir(pwd_path)
+    except OSError as e:
+        module.fail_json(msg=e.strerror + ' ' + pwd_path)
+
+    if not file_exist(pwd):
+        module.fail_json(msg="File does not exist")
+
+    file_name = os.path.basename(pwd)
+
+    if not check_yaml_file(file_name):
+        module.fail_json(msg="File is not YAML")
+
+    return file_name, pwd_path, pwd
 
 def validate(pwd, module):
 
@@ -141,6 +160,10 @@ def main():
 
     if config:
         data['config_name'], data['config_dir'], data['config'] = validate(config, module)
+    else:
+        # check if config exists in default home dir
+        config = os.environ['HOME'] + '/.curator/curator.yml'
+        data['config_name'], data['config_dir'], data['config'] = get_default_config(config, module)
 
     if module.check_mode:
         data['dry-run'] = True
