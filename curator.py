@@ -74,16 +74,18 @@ from ansible.module_utils.pycompat24 import get_exception
 def generate_command(data):
     cmd = []
     cmd.append('curator')
+    changed=True
 
     if data.get('dry-run',None):
         cmd.append("--dry-run")
+        changed=False
 
     if data.get('config', None):
         cmd.append("--config")
         cmd.append(data['config'])
 
     cmd.append(data['path'])
-    return ' '.join(cmd)
+    return ' '.join(cmd), changed
 
 
 def file_exist(data):
@@ -107,15 +109,15 @@ def get_default_config(pwd, module):
     try:
         os.chdir(pwd_path)
     except OSError as e:
-        module.fail_json(msg=e.strerror + ' ' + pwd_path)
+        module.fail_json(msg=e.strerror + ' ' + pwd_path, changed=False)
 
     if not file_exist(pwd):
-        module.fail_json(msg="File does not exist")
+        module.fail_json(msg="File does not exist", changed=False)
 
     file_name = os.path.basename(pwd)
 
     if not check_yaml_file(file_name):
-        module.fail_json(msg="File is not YAML")
+        module.fail_json(msg="File is not YAML", changed=False)
 
     return file_name, pwd_path, pwd
 
@@ -129,18 +131,17 @@ def validate(pwd, module):
         module.fail_json(msg=e.strerror)
 
     if not file_exist(pwd):
-        module.fail_json(msg="File does not exist")
+        module.fail_json(msg="File does not exist", changed=False)
 
     file_name = os.path.basename(pwd)
 
     if not check_yaml_file(file_name):
-        module.fail_json(msg="File is not YAML")
+        module.fail_json(msg="File is not YAML", changed=False)
 
     return file_name, pwd_path, pwd
 
 
 def main():
-
     module = AnsibleModule(
         argument_spec = dict(
             path   = dict(required=True, type='path'),
@@ -155,7 +156,7 @@ def main():
     data = {}
 
     if not path:
-        module.fail_json(msg="Path is required")
+        module.fail_json(msg="Path is required", change=False)
 
     data['file_name'], data['file_dir'], data['path'] = validate(path, module)
 
@@ -169,20 +170,18 @@ def main():
     if module.check_mode:
         data['dry-run'] = True
 
-    cmd = generate_command(data)
-
+    cmd, changed = generate_command(data)
     curator_dir = spawn.find_executable("curator")
 
     if not curator_dir:
-        module.fail_json(msg="curator: not found")
+        module.fail_json(msg="curator: not found", change=False)
 
     try:
-        proc = Popen(cmd, shell=True, cwd=data['file_dir'])
-        proc.wait()
-        module.exit_json(msg="Success", result=proc.returncode)
+        module.run_command(cmd, check_rc=True, use_unsafe_shell=True, cwd=data['file_dir'])
+        module.exit_json(msg="Success")
     except Exception:
         e = get_exception()
-        module.fail_json(msg=e)
+        module.fail_json(msg=e, change=changed)
 
 
 if __name__ == '__main__':
