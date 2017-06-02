@@ -84,25 +84,22 @@ def generate_command(data):
         cmd.append(data['config'])
 
     cmd.append(data['path'])
-    return ' '.join(cmd), changed
+    return (' '.join(cmd), changed)
 
 
 def file_exist(data):
-
     if not os.path.exists(data):
         return False
     return True
 
 
 def check_yaml_file(data):
-
     if not data.endswith('.yml'):
         return False
     return True
 
 
 def get_default_config(pwd, module):
-
     pwd_path = os.path.dirname(pwd)
 
     try:
@@ -121,7 +118,6 @@ def get_default_config(pwd, module):
     return file_name, pwd_path, pwd
 
 def validate(pwd, module):
-
     pwd_path = os.path.dirname(pwd)
 
     try:
@@ -148,32 +144,29 @@ def main():
         ),
         supports_check_mode=True
     )
-
     path = module.params['path']
     config = module.params['config']
-
     data = {}
+
+    package_installed_at = spawn.find_executable("curator")
+
+    if not package_installed_at:
+        module.fail_json(msg="curator: not found install first", change=False)
 
     if not path:
         module.fail_json(msg="Path is required", change=False)
 
-    data['file_name'], data['file_dir'], data['path'] = validate(path, module)
-
-    if config:
-        data['config_name'], data['config_dir'], data['config'] = validate(config, module)
-    else:
-        # check if config exists in default home dir
+    if not config:
         config = os.environ['HOME'] + '/.curator/curator.yml'
         data['config_name'], data['config_dir'], data['config'] = get_default_config(config, module)
+
+    data['file_name'], data['file_dir'], data['path'] = validate(path, module)
+    data['config_name'], data['config_dir'], data['config'] = validate(config, module)
 
     if module.check_mode:
         data['dry-run'] = True
 
     cmd, changed = generate_command(data)
-    curator_dir = spawn.find_executable("curator")
-
-    if not curator_dir:
-        module.fail_json(msg="curator: not found", change=False)
 
     try:
         module.run_command(cmd, check_rc=True, use_unsafe_shell=True, cwd=data['file_dir'])
